@@ -1,0 +1,19 @@
+{
+  "name": "mini-vue2",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "rollup -cw"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@babel/core": "^7.19.6",
+    "@babel/preset-env": "^7.19.4",
+    "rollup": "^3.2.3",
+    "rollup-plugin-babel": "^4.4.0"
+  }
+}
