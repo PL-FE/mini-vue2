@@ -36,8 +36,88 @@ class Watcher {
     Dep.target = null;
   }
 
+  run() {
+    this.get();
+  }
+
   update() {
-    this.get(); // 重新渲染
+    // this.get(); // 重新渲染 => 变成异步
+    queueWatcher(this);
+  }
+}
+
+let queue = [];
+let has = {};
+let pending = false; // 防抖
+
+function flushSchedulerQueue() {
+  const fulshQueue = queue.slice();
+  queue = [];
+  has = {};
+  pending = false;
+  fulshQueue.forEach((q) => q.run()); // 过程中有新的 可以继续放进去 queue
+}
+
+function queueWatcher(watcher) {
+  console.log("watcher11111", watcher);
+  const id = watcher.id;
+  if (!has[id]) {
+    queue.push(watcher);
+    has[id] = true;
+    if (!pending) {
+      nextTick(flushSchedulerQueue);
+      pending = true;
+    }
+  }
+}
+
+let callbacks = [];
+let waiting = false;
+function flushCallbacks() {
+  let cbs = callbacks.slice(0);
+  waiting = false;
+  callbacks = [];
+  cbs.forEach((cb) => cb());
+}
+
+/**
+ * nextTick
+ * 不是创建异步任务，而是维护到异步队列中
+ * nextTick 没有直接使用某个 api ，采用优雅降级
+ * 1 内部先采用 Promise(ie不兼容) 微任务是本轮渲染前执行
+ * 2 MutationObserver(h5的api)
+ * 3 setImmediate (ie独有)
+ * 4 setTimeout
+ */
+let timerFunc;
+if (Promise) {
+  timerFunc = () => {
+    Promise.resolve().then(flushCallbacks);
+  };
+} else if (MutationObserver) {
+  const observe = new MutationObserver(flushCallbacks);
+  const textNode = observe.createTextNode(1);
+  observe.observe(textNode, {
+    characterData: true,
+  });
+  timerFunc = () => {
+    textNode.textContent = 2;
+  };
+} else if (setTmmediate) {
+  timerFunc = () => {
+    setTmmediate(flushCallbacks);
+  };
+} else {
+  timerFunc = () => {
+    setTimeout(flushCallbacks);
+  };
+}
+
+export function nextTick(cb) {
+  callbacks.push(cb);
+  if (!waiting) {
+    timerFunc();
+    waiting = true;
   }
 }
 

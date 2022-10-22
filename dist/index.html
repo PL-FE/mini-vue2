@@ -30,9 +30,10 @@
             },
             el: '#app',
         })
-        setTimeout(() => {
-            vm.name = 'zt'
-        }, 200);
+        vm.$nextTick(() => {
+            console.log('app.innerHTML', app.innerHTML);
+        })
+        vm.name = '12'
 
         /**
          * 1 将数据变成响应式 initState

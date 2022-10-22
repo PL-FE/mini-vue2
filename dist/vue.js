@@ -350,13 +350,95 @@
         Dep.target = null;
       }
     }, {
+      key: "run",
+      value: function run() {
+        this.get();
+      }
+    }, {
       key: "update",
       value: function update() {
-        this.get(); // 重新渲染
+        // this.get(); // 重新渲染 => 变成异步
+        queueWatcher(this);
       }
     }]);
     return Watcher;
   }();
+  var queue = [];
+  var has = {};
+  var pending = false; // 防抖
+
+  function flushSchedulerQueue() {
+    var fulshQueue = queue.slice();
+    queue = [];
+    has = {};
+    pending = false;
+    fulshQueue.forEach(function (q) {
+      return q.run();
+    }); // 过程中有新的 可以继续放进去 queue
+  }
+
+  function queueWatcher(watcher) {
+    console.log("watcher11111", watcher);
+    var id = watcher.id;
+    if (!has[id]) {
+      queue.push(watcher);
+      has[id] = true;
+      if (!pending) {
+        nextTick(flushSchedulerQueue);
+        pending = true;
+      }
+    }
+  }
+  var callbacks = [];
+  var waiting = false;
+  function flushCallbacks() {
+    var cbs = callbacks.slice(0);
+    waiting = false;
+    callbacks = [];
+    cbs.forEach(function (cb) {
+      return cb();
+    });
+  }
+
+  /**
+   * nextTick
+   * 不是创建异步任务，而是维护到异步队列中
+   * nextTick 没有直接使用某个 api ，采用优雅降级
+   * 1 内部先采用 Promise(ie不兼容) 微任务是本轮渲染前执行
+   * 2 MutationObserver(h5的api)
+   * 3 setImmediate (ie独有)
+   * 4 setTimeout
+   */
+  var timerFunc;
+  if (Promise) {
+    timerFunc = function timerFunc() {
+      Promise.resolve().then(flushCallbacks);
+    };
+  } else if (MutationObserver) {
+    var observe$1 = new MutationObserver(flushCallbacks);
+    var textNode = observe$1.createTextNode(1);
+    observe$1.observe(textNode, {
+      characterData: true
+    });
+    timerFunc = function timerFunc() {
+      textNode.textContent = 2;
+    };
+  } else if (setTmmediate) {
+    timerFunc = function timerFunc() {
+      setTmmediate(flushCallbacks);
+    };
+  } else {
+    timerFunc = function timerFunc() {
+      setTimeout(flushCallbacks);
+    };
+  }
+  function nextTick(cb) {
+    callbacks.push(cb);
+    if (!waiting) {
+      timerFunc();
+      waiting = true;
+    }
+  }
 
   // h() _c
   function createElementVNode(vm, tag) {
@@ -642,6 +724,7 @@
   }
   initMixin(Vue);
   initLifecycle(Vue);
+  Vue.prototype.$nextTick = nextTick;
 
   return Vue;
 
