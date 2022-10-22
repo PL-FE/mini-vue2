@@ -9,6 +9,15 @@
 </head>
 
 <body>
+
+    <div id="app" style="color:red;background:yellow;" key="123">
+        <div style="color:green;">
+            {{name}}HHH{{age}} {{name}} {{name}}
+        </div>
+        <span>World</span>
+    </div>
+
+    <!-- <script src="vue.js"></script> -->
     <script src="vue.js"></script>
     <script>
         const vm = new Vue({
@@ -18,12 +27,37 @@
                     age: 18,
                     list: ['a', 'b', 'c']
                 }
-            }
+            },
+            el: '#app',
         })
-        vm.age = 99
-        console.log('vm.age', vm.age);
-        console.log('vm', vm);
+        setTimeout(() => {
+            vm.name = 'zt'
+        }, 200);
+
+        /**
+         * 1 将数据变成响应式 initState
+         * 2 模板编译，将模板变成ast语法树，生成render方法
+         * 3 调用 render 函数，会进行取值操作，产生对应的虚拟 DOM render(){_c('div',null,_v(name))} 触发 get 方法
+         * 4 将虚拟 dom 渲染成真实 dom
+         * 
+         * 每个组件一个render（），每次数据变化的时候会重新执行这个render
+         * 为什么要组件化？
+         * 复用
+         * 方便维护
+         * 局部更新，最小量的render
+         * 
+        */
+
+        /**
+         * Watcher 和 Dep 多对多
+         * 
+         * 每一个属性都有一个 dep
+         * 一个属性可以在多个组件中使用 所以会收集多个 Watcher
+         * 
+         * 然后一个组件有多个属性，也就是一个 watcher 有 多个 dep
+        */
     </script>
 </body>
+
 
 </html>

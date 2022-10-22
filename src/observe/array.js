@@ -15,8 +15,6 @@ const methods = [
 methods.forEach((method) => {
   newArrayProto[method] = function (...args) {
     const result = oldArrayProto[method].apply(this, args); // 内部调用原来的方法
-    console.log("result", result);
-
     let inserted;
 
     switch (method) {
