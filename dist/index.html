@@ -20,6 +20,17 @@
     <!-- <script src="vue.js"></script> -->
     <script src="vue.js"></script>
     <script>
+        Vue.mixin({
+            created() {
+                console.log('1', 1);
+            }
+        })
+        Vue.mixin({
+            created() {
+                console.log('created', 1);
+            }
+        })
+        console.log('Vue.options', Vue.options);
         const vm = new Vue({
             data() {
                 return {
@@ -29,11 +40,10 @@
                 }
             },
             el: '#app',
+            created() {
+                console.log('created', 1);
+            }
         })
-        vm.$nextTick(() => {
-            console.log('app.innerHTML', app.innerHTML);
-        })
-        vm.name = '12'
 
         /**
          * 1 将数据变成响应式 initState

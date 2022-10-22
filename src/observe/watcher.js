@@ -59,7 +59,6 @@ function flushSchedulerQueue() {
 }
 
 function queueWatcher(watcher) {
-  console.log("watcher11111", watcher);
   const id = watcher.id;
   if (!has[id]) {
     queue.push(watcher);

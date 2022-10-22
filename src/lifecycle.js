@@ -82,7 +82,6 @@ export function mountComponent(vm, el) {
   };
 
   const watcher = new Watcher(vm, updateComponent, true);
-  console.log("watcher", watcher);
 }
 
 // vue 核心流程
@@ -90,3 +89,10 @@ export function mountComponent(vm, el) {
 // 2 模板转换成 ast
 // 3 将 ast 转成 render 函数
 // 4 后续每次数据更新可以只执行 render 函数，无需再转换
+
+export function callHook(vm, hook) {
+  const handlers = vm.$options[hook];
+  if (handlers) {
+    handlers.forEach((handler) => handler.call(vm));
+  }
+}

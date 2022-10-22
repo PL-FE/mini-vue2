@@ -1,7 +1,6 @@
 import { parseHTML, defaultTagRE } from "./parent";
 
 function genProps(attrs) {
-  console.log("attrs", attrs);
   let str = ""; // {name,value}
   for (let index = 0; index < attrs.length; index++) {
     const attr = attrs[index];
@@ -31,7 +30,6 @@ function gen(node) {
       return `_v(${JSON.stringify(text)})`;
     } else {
       // 普通文本
-      console.log("text", text);
       let tokens = [];
       let match;
       defaultTagRE.lastIndex = 0;
