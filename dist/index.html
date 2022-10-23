@@ -11,30 +11,40 @@
 <body>
 
     <div id="app">
-        {{list}}{{a}}
+        {{fullName}}{{fullName}}
     </div>
 
     <script src="vue.js"></script>
     <script>
         console.log('Vue.options', Vue.options);
         const vm = new Vue({
+            el: '#app',
             data() {
                 return {
                     name: 'pl',
-                    age: 18,
-                    list: ['a', 'b', 'c', { a: 2 }],
-                    a: {
-                        a: 1
-                    }
+                    name2: 'zt'
                 }
             },
-            el: '#app',
+            // 维护一个 dirty 值，默认不会执行
+            // 计算属性就是一个 defineProperty
+            // 计算属性也是一个 Watcher,默认渲染会创造一个Watcher
+            computed: {
+                fullName() {
+                    console.log('run');
+                    return this.name + this.name2
+                }
+            },
         })
 
+        setTimeout(() => {
+            vm.name = '222222'
+        }, 2000);
+
+
         // vm.list[3].a = 22
-        vm.list.push(22)
-        vm.a.b = 2
-        vm.a.__ob__.dep.notify() // $set
+        // vm.list.push(22)
+        // vm.a.b = 2
+        // vm.a.__ob__.dep.notify() // $set
         /**
          * 1 将数据变成响应式 initState
          * 2 模板编译，将模板变成ast语法树，生成render方法

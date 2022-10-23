@@ -23,4 +23,15 @@ class Dep {
 }
 Dep.target = null;
 
+// 能记住多个watcher
+const stack = [];
+export function pushTarget(watcher) {
+  stack.push(watcher);
+  Dep.target = watcher;
+}
+export function popTarget() {
+  stack.pop();
+  Dep.target = stack[stack.length - 1];
+}
+
 export default Dep;

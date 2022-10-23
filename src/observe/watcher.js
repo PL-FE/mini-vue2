@@ -1,4 +1,4 @@
-import Dep from "./dep";
+import Dep, { popTarget, pushTarget } from "./dep";
 
 let id = 0;
 // 不同实例有不同的 watcher
@@ -16,7 +16,11 @@ class Watcher {
      */
     this.deps = [];
     this.depsId = new Set();
-    this.get();
+    this.lazy = options.lazy;
+    this.dirty = this.lazy;
+    this.dirty ? null : this.get();
+    this.value;
+    this.vm = vm;
   }
 
   addDep(dep) {
@@ -29,20 +33,39 @@ class Watcher {
     }
   }
 
+  evaluate() {
+    this.value = this.get();
+    this.dirty = false;
+  }
+
   get() {
     // 需要给每个属性增加dep,目前就时收集 Watcher
-    Dep.target = this;
-    this.getter();
-    Dep.target = null;
+    pushTarget(this); // Dep.target = this 的增强;
+    const value = this.getter.call(this.vm);
+    popTarget(); // Dep.target = null 的增强;
+    return value;
   }
 
   run() {
     this.get();
   }
 
+  depend() {
+    let i = this.deps.length;
+    // 因为开始有2个watcher  1渲染watcher 2计算属性watcher
+    // 当计算属性出栈后，只剩下渲染watcher，所以让计算属性依赖的属性都去记住这个渲染wacther，用于重新渲染
+    while (i--) {
+      this.deps[i].depend(); // 让计算属性 watcher 也收集渲染watcher
+    }
+  }
+
   update() {
-    // this.get(); // 重新渲染 => 变成异步
-    queueWatcher(this);
+    if (this.lazy) {
+      this.dirty = true;
+    } else {
+      // this.get(); // 重新渲染 => 变成异步
+      queueWatcher(this);
+    }
   }
 }
 

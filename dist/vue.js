@@ -1,6 +1,6 @@
 (function (global, factory) {
-  typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
-  typeof define === 'function' && define.amd ? define(factory) :
+  typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory(require('rollup')) :
+  typeof define === 'function' && define.amd ? define(['rollup'], factory) :
   (global = typeof globalThis !== 'undefined' ? globalThis : global || self, global.Vue = factory());
 })(this, (function () { 'use strict';
 
@@ -355,6 +355,17 @@
   }();
   Dep.target = null;
 
+  // 能记住多个watcher
+  var stack = [];
+  function pushTarget(watcher) {
+    stack.push(watcher);
+    Dep.target = watcher;
+  }
+  function popTarget() {
+    stack.pop();
+    Dep.target = stack[stack.length - 1];
+  }
+
   var id = 0;
   // 不同实例有不同的 watcher
 
@@ -372,7 +383,11 @@
        */
       this.deps = [];
       this.depsId = new Set();
-      this.get();
+      this.lazy = options.lazy;
+      this.dirty = this.lazy;
+      this.dirty ? null : this.get();
+      this.value;
+      this.vm = vm;
     }
     _createClass(Watcher, [{
       key: "addDep",
@@ -386,12 +401,19 @@
         }
       }
     }, {
+      key: "evaluate",
+      value: function evaluate() {
+        this.value = this.get();
+        this.dirty = false;
+      }
+    }, {
       key: "get",
       value: function get() {
         // 需要给每个属性增加dep,目前就时收集 Watcher
-        Dep.target = this;
-        this.getter();
-        Dep.target = null;
+        pushTarget(this); // Dep.target = this 的增强;
+        var value = this.getter.call(this.vm);
+        popTarget(); // Dep.target = null 的增强;
+        return value;
       }
     }, {
       key: "run",
@@ -399,10 +421,24 @@
         this.get();
       }
     }, {
+      key: "depend",
+      value: function depend() {
+        var i = this.deps.length;
+        // 因为开始有2个watcher  1渲染watcher 2计算属性watcher
+        // 当计算属性出栈后，只剩下渲染watcher，所以让计算属性依赖的属性都去记住这个渲染wacther，用于重新渲染
+        while (i--) {
+          this.deps[i].depend(); // 让计算属性 watcher 也收集渲染watcher
+        }
+      }
+    }, {
       key: "update",
       value: function update() {
-        // this.get(); // 重新渲染 => 变成异步
-        queueWatcher(this);
+        if (this.lazy) {
+          this.dirty = true;
+        } else {
+          // this.get(); // 重新渲染 => 变成异步
+          queueWatcher(this);
+        }
       }
     }]);
     return Watcher;
@@ -729,6 +765,9 @@
     if (opts.data) {
       initData(vm);
     }
+    if (opts.computed) {
+      initComputed(vm);
+    }
   }
   function proxy(vm, taregt, key) {
     Object.defineProperty(vm, key, {
@@ -749,6 +788,43 @@
     for (var key in data) {
       proxy(vm, "_data", key);
     }
+  }
+  function initComputed(vm) {
+    var computed = vm.$options.computed;
+    var watchers = vm._computedWatchers = {};
+    console.log("computed", computed);
+    for (var key in computed) {
+      var userDef = computed[key];
+      var fn = typeof userDef === "function" ? userDef : userDef.get;
+
+      // 直接new的时候会直接执行，加了lazy变成非立即执行
+      watchers[key] = new Watcher(vm, fn, {
+        lazy: true
+      });
+      defineComputed(vm, key, userDef);
+    }
+  }
+  function defineComputed(target, key, userDef) {
+    var setter = userDef.set || function () {};
+    Object.defineProperty(target, key, {
+      get: createProperty(key),
+      set: setter
+    });
+  }
+  function createProperty(key) {
+    // 检测是否要执行getter
+    return function () {
+      var watcher = this._computedWatchers[key]; // 获取对应属性的 watcher
+      if (watcher.dirty) {
+        // 如果是脏的，就执行用户的fn
+        watcher.evaluate();
+      }
+      if (Dep.target) {
+        // 计算属性出栈后，还有渲染watcher没出，所以应该让计算属性记住渲染watcher
+        watcher.depend();
+      }
+      return watcher.value;
+    };
   }
 
   function initMixin(Vue) {
