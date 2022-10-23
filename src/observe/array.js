@@ -16,7 +16,6 @@ methods.forEach((method) => {
   newArrayProto[method] = function (...args) {
     const result = oldArrayProto[method].apply(this, args); // 内部调用原来的方法
     let inserted;
-
     switch (method) {
       case "push":
       case "unshift":
@@ -33,6 +32,7 @@ methods.forEach((method) => {
     if (inserted) {
       this.__ob__.observeArray(inserted);
     }
+    this.__ob__.dep.notify();
     return result;
   };
 });

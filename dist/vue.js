@@ -632,6 +632,7 @@
       if (inserted) {
         this.__ob__.observeArray(inserted);
       }
+      this.__ob__.dep.notify();
       return result;
     };
   });
@@ -639,6 +640,9 @@
   var Observe = /*#__PURE__*/function () {
     function Observe(data) {
       _classCallCheck(this, Observe);
+      // 给每个对象都增加收集功能
+      this.dep = new Dep();
+
       // Object.defineProperty 只能劫持已经存在的属性
       // data.__ob__ = this; 给数据加了辨识，如果数据有了ob，说明被观察过了
       Object.defineProperty(data, "__ob__", {
@@ -672,16 +676,30 @@
       }
     }]);
     return Observe;
-  }();
+  }(); // 深层次会递归，不存在的监控不到，存在的要重写方法。
+  function dependArray(value) {
+    for (var i = 0; i < value.length; i++) {
+      var current = value[i];
+      current.__ob__ && current.__ob__.dep.depend();
+      if (Array.isArray(current)) {
+        dependArray(current);
+      }
+    }
+  }
   function defineReactive(target, key, value) {
-    observe(value); //递归劫持对象
+    var childOb = observe(value); //递归劫持对象
     var dep = new Dep(); // 每一个属性都有一个 dep
     Object.defineProperty(target, key, {
       get: function get() {
         if (Dep.target) {
           dep.depend(); // 属性搜集watch
+          if (childOb) {
+            childOb.dep.depend(); // 让数组和对象本身也实现依赖收集
+            if (Array.isArray(value)) {
+              dependArray(value);
+            }
+          }
         }
-
         return value;
       },
       set: function set(newValue) {
