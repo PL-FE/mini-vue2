@@ -11,6 +11,9 @@ export function initState(vm) {
   if (opts.computed) {
     initComputed(vm);
   }
+  if (opts.watch) {
+    initWatch(vm);
+  }
 }
 
 function proxy(vm, taregt, key) {
@@ -22,6 +25,30 @@ function proxy(vm, taregt, key) {
       vm[taregt][key] = newValue;
     },
   });
+}
+
+function initWatch(vm) {
+  let watch = vm.$options.watch;
+  for (const key in watch) {
+    // 字符串、数组、函数、对象（先不考虑）
+    const hadnler = watch[key];
+    if (Array.isArray(hadnler)) {
+      for (let i = 0; i < handler.length; i++) {
+        createWacher(vm, key, hadnler[i]);
+      }
+    } else {
+      createWacher(vm, key, hadnler);
+    }
+  }
+  console.log("watch", watch);
+}
+
+function createWacher(vm, key, handler) {
+  // 字符串、函数
+  if (typeof handler === "string") {
+    handler = vm[handler];
+  }
+  return vm.$watch(key, handler);
 }
 
 function initData(vm) {

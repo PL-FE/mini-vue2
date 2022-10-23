@@ -371,11 +371,17 @@
 
   // 每个属性有一个 dep ，属性是被观察者，watcher 是观察者
   var Watcher = /*#__PURE__*/function () {
-    function Watcher(vm, fn, options) {
+    function Watcher(vm, exprOrFn, options, cb) {
       _classCallCheck(this, Watcher);
       this.id = id++;
-      this.getter = fn;
-      this.renderWatch = options;
+      this.renderWatcher = options;
+      if (typeof exprOrFn === "string") {
+        this.getter = function () {
+          return vm[exprOrFn];
+        };
+      } else {
+        this.getter = exprOrFn;
+      }
       /**
        * watch为什么要记住 dep
        * 实现计算属性及清理工作要用到
@@ -384,10 +390,11 @@
       this.deps = [];
       this.depsId = new Set();
       this.lazy = options.lazy;
+      this.cb = cb;
       this.dirty = this.lazy;
-      this.dirty ? null : this.get();
-      this.value;
+      this.value = this.lazy ? null : this.get();
       this.vm = vm;
+      this.user = options.user; // 是否是用户自己
     }
     _createClass(Watcher, [{
       key: "addDep",
@@ -418,7 +425,12 @@
     }, {
       key: "run",
       value: function run() {
-        this.get();
+        var oldValue = this.value;
+        var newValue = this.get();
+        this.value = newValue;
+        if (this.user) {
+          this.cb.call(this.vm, newValue, oldValue);
+        }
       }
     }, {
       key: "depend",
@@ -768,6 +780,9 @@
     if (opts.computed) {
       initComputed(vm);
     }
+    if (opts.watch) {
+      initWatch(vm);
+    }
   }
   function proxy(vm, taregt, key) {
     Object.defineProperty(vm, key, {
@@ -778,6 +793,28 @@
         vm[taregt][key] = newValue;
       }
     });
+  }
+  function initWatch(vm) {
+    var watch = vm.$options.watch;
+    for (var key in watch) {
+      // 字符串、数组、函数、对象（先不考虑）
+      var hadnler = watch[key];
+      if (Array.isArray(hadnler)) {
+        for (var i = 0; i < handler.length; i++) {
+          createWacher(vm, key, hadnler[i]);
+        }
+      } else {
+        createWacher(vm, key, hadnler);
+      }
+    }
+    console.log("watch", watch);
+  }
+  function createWacher(vm, key, handler) {
+    // 字符串、函数
+    if (typeof handler === "string") {
+      handler = vm[handler];
+    }
+    return vm.$watch(key, handler);
   }
   function initData(vm) {
     var data = vm.$options.data;
@@ -875,6 +912,11 @@
   initLifecycle(Vue);
   initGloalAPI(Vue);
   Vue.prototype.$nextTick = nextTick;
+  Vue.prototype.$watch = function (exprorFn, cb) {
+    new Watcher(this, exprorFn, {
+      user: true
+    }, cb);
+  };
 
   return Vue;
 
