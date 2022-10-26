@@ -1,6 +1,6 @@
 (function (global, factory) {
-  typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory(require('rollup')) :
-  typeof define === 'function' && define.amd ? define(['rollup'], factory) :
+  typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
+  typeof define === 'function' && define.amd ? define(factory) :
   (global = typeof globalThis !== 'undefined' ? globalThis : global || self, global.Vue = factory());
 })(this, (function () { 'use strict';
 
@@ -863,6 +863,14 @@
       return watcher.value;
     };
   }
+  function initStateMixin(Vue) {
+    Vue.prototype.$nextTick = nextTick;
+    Vue.prototype.$watch = function (exprorFn, cb) {
+      new Watcher(this, exprorFn, {
+        user: true
+      }, cb);
+    };
+  }
 
   function initMixin(Vue) {
     Vue.prototype._init = function (options) {
@@ -908,15 +916,10 @@
   function Vue(options) {
     this._init(options);
   }
-  initMixin(Vue);
-  initLifecycle(Vue);
-  initGloalAPI(Vue);
-  Vue.prototype.$nextTick = nextTick;
-  Vue.prototype.$watch = function (exprorFn, cb) {
-    new Watcher(this, exprorFn, {
-      user: true
-    }, cb);
-  };
+  initMixin(Vue); // 扩展init
+  initLifecycle(Vue); // vm._update vm.render
+  initGloalAPI(Vue); // 全局API
+  initStateMixin(Vue); // 实现了 nextTick $watch
 
   return Vue;
 
